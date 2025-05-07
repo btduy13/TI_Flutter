@@ -306,18 +306,77 @@ class DatabaseService extends ChangeNotifier {
     final likePattern = '$prefix-$month-$year-%';
     final result = await _connection.query(
       """
-      SELECT MAX(CAST(SUBSTRING(id FROM '[0-9]{3}\$') AS INTEGER))
-      FROM truc_in_orders
-      WHERE id LIKE @likePattern
+      SELECT id FROM truc_in_orders WHERE id LIKE @likePattern ORDER BY id DESC LIMIT 1
       """,
       substitutionValues: {'likePattern': likePattern},
     );
     int nextNumber = 1;
     if (result.isNotEmpty && result.first[0] != null) {
-      nextNumber = (result.first[0] as int) + 1;
+      final lastId = result.first[0] as String;
+      final parts = lastId.split('-');
+      if (parts.length == 4) {
+        final number = int.tryParse(parts[3]);
+        if (number != null) {
+          nextNumber = number + 1;
+        }
+      }
     }
     final newId = '$prefix-$month-$year-${nextNumber.toString().padLeft(3, '0')}';
     return newId;
+  }
+
+  Future<String> generateBangKeoOrderId() async {
+    if (!_isConnected) await initDatabase();
+    final now = DateTime.now();
+    final prefix = 'B';
+    final month = now.month.toString().padLeft(2, '0');
+    final year = now.year.toString().substring(2, 4);
+    final likePattern = '$prefix-$month-$year-%';
+    final result = await _connection.query(
+      """
+      SELECT id FROM bang_keo_orders WHERE id LIKE @likePattern ORDER BY id DESC LIMIT 1
+      """,
+      substitutionValues: {'likePattern': likePattern},
+    );
+    int nextNumber = 1;
+    if (result.isNotEmpty && result.first[0] != null) {
+      final lastId = result.first[0] as String;
+      final parts = lastId.split('-');
+      if (parts.length == 4) {
+        final number = int.tryParse(parts[3]);
+        if (number != null) {
+          nextNumber = number + 1;
+        }
+      }
+    }
+    final newId = '$prefix-$month-$year-${nextNumber.toString().padLeft(3, '0')}';
+    return newId;
+  }
+
+  Future<String> createBangKeoOrder(Map<String, dynamic> order) async {
+    if (!_isConnected) await initDatabase();
+    
+    final id = await generateBangKeoOrderId();
+    final results = await _connection.mappedResultsQuery(
+      '''
+      INSERT INTO bang_keo_orders (
+        id, thoi_gian, ten_hang, ten_khach_hang, ngay_du_kien, quy_cach, so_luong,
+        mau_sac, don_gia_goc, thanh_tien, don_gia_ban, thanh_tien_ban, cong_no_khach,
+        ctv, hoa_hong, tien_hoa_hong, loi_nhuan, tien_ship, loi_nhuan_rong,
+        da_giao, da_tat_toan
+      ) VALUES (
+        @id, @thoi_gian, @ten_hang, @ten_khach_hang, @ngay_du_kien, @quy_cach, @so_luong,
+        @mau_sac, @don_gia_goc, @thanh_tien, @don_gia_ban, @thanh_tien_ban, @cong_no_khach,
+        @ctv, @hoa_hong, @tien_hoa_hong, @loi_nhuan, @tien_ship, @loi_nhuan_rong,
+        @da_giao, @da_tat_toan
+      ) RETURNING id
+      ''',
+      substitutionValues: {
+        'id': id,
+        ...order,
+      },
+    );
+    return results.first['bang_keo_orders']!['id'].toString();
   }
 
   @override

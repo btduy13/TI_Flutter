@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/database_service.dart';
+import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 
 class BangKeoInTab extends StatefulWidget {
   final DateTime? selectedDate;
@@ -48,7 +49,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
   final _loiNhuanController = TextEditingController();
   final _tienShipController = TextEditingController();
   final _loiNhuanRongController = TextEditingController();
-  final currencyFormat = NumberFormat('#,##0', 'vi_VN');
+  final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
   @override
   void dispose() {
@@ -253,6 +254,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                 return null;
               },
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -269,6 +271,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                 return null;
               },
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -285,6 +288,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                 return null;
               },
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -301,6 +305,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                 return null;
               },
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
           ],
         ),
@@ -337,6 +342,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                 return null;
               },
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -347,6 +353,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -365,6 +372,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -383,6 +391,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -393,6 +402,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -403,6 +413,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
           ],
         ),
@@ -439,6 +450,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                 return null;
               },
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -467,6 +479,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                 return null;
               },
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -483,6 +496,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -527,6 +541,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -585,6 +600,7 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => _autoCalculate(),
+              inputFormatters: [MoneyInputFormatter(thousandSeparator: ThousandSeparator.Period, mantissaLength: 0, trailingSymbol: '')],
             ),
             const SizedBox(height: 16),
             TextFormField(

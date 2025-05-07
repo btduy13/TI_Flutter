@@ -56,12 +56,14 @@ class _MainScreenState extends State<MainScreen> {
     const HistoryScreen(),
   ];
 
+  final List<String> _titles = ['Quản lý đơn hàng', 'Lịch sử đơn hàng'];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Text('Quản lý đơn hàng'),
+        title: Text(_titles[_selectedIndex]),
         elevation: 4,
         leading: IconButton(
           icon: const Icon(Icons.menu),
