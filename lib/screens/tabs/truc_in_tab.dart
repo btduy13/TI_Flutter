@@ -7,11 +7,15 @@ import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 class TrucInTab extends StatefulWidget {
   final DateTime? selectedDate;
   final Function(BuildContext) onDateSelect;
+  final Map<String, dynamic>? initialData;
+  final Future<void> Function(Map<String, dynamic> data)? onSave;
 
   const TrucInTab({
     super.key,
     required this.selectedDate,
     required this.onDateSelect,
+    this.initialData,
+    this.onSave,
   });
 
   @override
@@ -41,6 +45,32 @@ class _TrucInTabState extends State<TrucInTab> {
   final _loiNhuanRongController = TextEditingController();
 
   final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      final d = widget.initialData!;
+      _tenHangController.text = d['ten_hang']?.toString() ?? '';
+      _tenKhachHangController.text = d['ten_khach_hang']?.toString() ?? '';
+      _quyCachController.text = d['quy_cach']?.toString() ?? '';
+      _soLuongController.text = d['so_luong']?.toString() ?? '';
+      _mauSacController.text = d['mau_sac']?.toString() ?? '';
+      _mauKeoController.text = d['mau_keo']?.toString() ?? '';
+      _donGiaGocController.text = d['don_gia_goc'] != null ? currencyFormat.format(d['don_gia_goc']) : '';
+      _donGiaBanController.text = d['don_gia_ban'] != null ? currencyFormat.format(d['don_gia_ban']) : '';
+      _ctvController.text = d['ctv']?.toString() ?? '';
+      _hoaHongController.text = d['hoa_hong']?.toString() ?? '';
+      _tienShipController.text = d['tien_ship'] != null ? currencyFormat.format(d['tien_ship']) : '';
+      // calculated fields
+      _thanhTienGocController.text = d['thanh_tien_goc'] != null ? currencyFormat.format(d['thanh_tien_goc']) : '';
+      _thanhTienBanController.text = d['thanh_tien_ban'] != null ? currencyFormat.format(d['thanh_tien_ban']) : '';
+      _congNoKhachController.text = d['cong_no_khach'] != null ? currencyFormat.format(d['cong_no_khach']) : '';
+      _tienHoaHongController.text = d['tien_hoa_hong'] != null ? currencyFormat.format(d['tien_hoa_hong']) : '';
+      _loiNhuanController.text = d['loi_nhuan'] != null ? currencyFormat.format(d['loi_nhuan']) : '';
+      _loiNhuanRongController.text = d['loi_nhuan_rong'] != null ? currencyFormat.format(d['loi_nhuan_rong']) : '';
+    }
+  }
 
   @override
   void dispose() {
@@ -426,16 +456,14 @@ class _TrucInTabState extends State<TrucInTab> {
         ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              try {
-                final db = Provider.of<DatabaseService>(context, listen: false);
-                final now = DateTime.now();
-                final newId = await db.generateTrucInOrderId();
-                final order = {
-                  'id': newId,
-                  'thoi_gian': now.toIso8601String(),
+              if (widget.onSave != null) {
+                // Edit mode
+                final data = {
+                  'id': widget.initialData?['id'],
+                  'thoi_gian': widget.initialData?['thoi_gian'],
                   'ten_hang': _tenHangController.text,
                   'ten_khach_hang': _tenKhachHangController.text,
-                  'ngay_du_kien': widget.selectedDate?.toIso8601String() ?? now.toIso8601String(),
+                  'ngay_du_kien': widget.selectedDate?.toIso8601String(),
                   'quy_cach': _quyCachController.text,
                   'so_luong': _parseField(_soLuongController.text),
                   'mau_sac': _mauSacController.text,
@@ -451,20 +479,56 @@ class _TrucInTabState extends State<TrucInTab> {
                   'loi_nhuan': _parseField(_loiNhuanController.text),
                   'tien_ship': _parseField(_tienShipController.text),
                   'loi_nhuan_rong': _parseField(_loiNhuanRongController.text),
-                  'da_giao': false,
-                  'da_tat_toan': false,
+                  'da_giao': widget.initialData?['da_giao'] ?? false,
+                  'da_tat_toan': widget.initialData?['da_tat_toan'] ?? false,
                 };
-                final id = await db.createTrucInOrder(order);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Đã lưu đơn hàng thành công (ID: $id)!')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Lỗi khi lưu đơn hàng: $e')),
-                  );
+                await widget.onSave!(data);
+              } else {
+                // Add mode
+                try {
+                  final db = Provider.of<DatabaseService>(context, listen: false);
+                  final now = DateTime.now();
+                  final newId = await db.generateTrucInOrderId();
+                  final order = {
+                    'id': newId,
+                    'thoi_gian': now.toIso8601String(),
+                    'ten_hang': _tenHangController.text,
+                    'ten_khach_hang': _tenKhachHangController.text,
+                    'ngay_du_kien': widget.selectedDate?.toIso8601String() ?? now.toIso8601String(),
+                    'quy_cach': _quyCachController.text,
+                    'so_luong': _parseField(_soLuongController.text),
+                    'mau_sac': _mauSacController.text,
+                    'mau_keo': _mauKeoController.text,
+                    'don_gia_goc': _parseField(_donGiaGocController.text),
+                    'thanh_tien_goc': _parseField(_thanhTienGocController.text),
+                    'don_gia_ban': _parseField(_donGiaBanController.text),
+                    'thanh_tien_ban': _parseField(_thanhTienBanController.text),
+                    'cong_no_khach': _parseField(_congNoKhachController.text),
+                    'ctv': _ctvController.text,
+                    'hoa_hong': _parseField(_hoaHongController.text),
+                    'tien_hoa_hong': _parseField(_tienHoaHongController.text),
+                    'loi_nhuan': _parseField(_loiNhuanController.text),
+                    'tien_ship': _parseField(_tienShipController.text),
+                    'loi_nhuan_rong': _parseField(_loiNhuanRongController.text),
+                    'da_giao': false,
+                    'da_tat_toan': false,
+                  };
+                  final id = await db.createTrucInOrder(order);
+                  if (id != null && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Đã lưu đơn hàng thành công (ID: $id)!')),
+                    );
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Lỗi: Không lưu được đơn hàng!')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lỗi khi lưu đơn hàng: $e')),
+                    );
+                  }
                 }
               }
             }

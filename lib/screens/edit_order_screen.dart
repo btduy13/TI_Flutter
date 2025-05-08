@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/database_service.dart';
 import 'tabs/bang_keo_tab.dart';
+import 'tabs/bang_keo_in_tab.dart';
+import 'tabs/truc_in_tab.dart';
 
 class EditOrderScreen extends StatefulWidget {
   const EditOrderScreen({super.key});
@@ -31,9 +33,12 @@ class _EditOrderScreenState extends State<EditOrderScreen> {
       final db = Provider.of<DatabaseService>(context, listen: false);
       Map<String, dynamic>? order;
       if (_loaiDon == 'bang_keo') {
-        order = await db.getBangKeoOrderById(orderId);
+        order = await db.getBangKeoOrderById(orderId.toString());
+      } else if (_loaiDon == 'bang_keo_in') {
+        order = await db.getBangKeoInOrderById(orderId.toString());
+      } else if (_loaiDon == 'truc_in') {
+        order = await db.getTrucInOrderById(orderId.toString());
       } else {
-        // TODO: support other types
         order = null;
       }
       DateTime? ngayDuKien;
@@ -53,9 +58,11 @@ class _EditOrderScreenState extends State<EditOrderScreen> {
     } catch (e) {
       setState(() { _isLoading = false; });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải đơn hàng: $e')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi tải đơn hàng: $e')),
+          );
+        });
       }
     }
   }
@@ -63,15 +70,54 @@ class _EditOrderScreenState extends State<EditOrderScreen> {
   Future<void> _onSaveBangKeo(Map<String, dynamic> data) async {
     try {
       final db = Provider.of<DatabaseService>(context, listen: false);
-      await db.updateBangKeoOrder(data['id'], data);
+      final id = data['id'].toString();
+      await db.updateBangKeoOrder(id, data);
       if (mounted) {
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi cập nhật đơn hàng: $e')),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi cập nhật đơn hàng: $e')),
+          );
+        });
+      }
+    }
+  }
+
+  Future<void> _onSaveBangKeoIn(Map<String, dynamic> data) async {
+    try {
+      final db = Provider.of<DatabaseService>(context, listen: false);
+      await db.updateBangKeoInOrder(data['id'].toString(), data);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi cập nhật đơn hàng: $e')),
+          );
+        });
+      }
+    }
+  }
+
+  Future<void> _onSaveTrucIn(Map<String, dynamic> data) async {
+    try {
+      final db = Provider.of<DatabaseService>(context, listen: false);
+      await db.updateTrucInOrder(data['id'].toString(), data);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi cập nhật đơn hàng: $e')),
+          );
+        });
       }
     }
   }
@@ -83,7 +129,6 @@ class _EditOrderScreenState extends State<EditOrderScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    // Only support Băng keo for now
     if (_loaiDon == 'bang_keo') {
       return Scaffold(
         appBar: AppBar(title: const Text('Chỉnh sửa đơn Băng keo')),
@@ -104,10 +149,50 @@ class _EditOrderScreenState extends State<EditOrderScreen> {
           onSave: _onSaveBangKeo,
         ),
       );
+    } else if (_loaiDon == 'bang_keo_in') {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Chỉnh sửa đơn Băng keo in')),
+        body: BangKeoInTab(
+          selectedDate: _selectedDate,
+          onDateSelect: (ctx) async {
+            final picked = await showDatePicker(
+              context: ctx,
+              initialDate: _selectedDate ?? DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) {
+              setState(() { _selectedDate = picked; });
+            }
+          },
+          initialData: _orderData,
+          onSave: _onSaveBangKeoIn,
+        ),
+      );
+    } else if (_loaiDon == 'truc_in') {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Chỉnh sửa đơn Trục in')),
+        body: TrucInTab(
+          selectedDate: _selectedDate,
+          onDateSelect: (ctx) async {
+            final picked = await showDatePicker(
+              context: ctx,
+              initialDate: _selectedDate ?? DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) {
+              setState(() { _selectedDate = picked; });
+            }
+          },
+          initialData: _orderData,
+          onSave: _onSaveTrucIn,
+        ),
+      );
     }
-    // TODO: support other types
     return const Scaffold(
-      body: Center(child: Text('Chỉ hỗ trợ chỉnh sửa đơn Băng keo.')), 
+      body: Center(child: Text('Chỉ hỗ trợ chỉnh sửa đơn Băng keo, Băng keo in, Trục in.')), 
     );
   }
-} 
+}
+ 

@@ -7,11 +7,15 @@ import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 class BangKeoInTab extends StatefulWidget {
   final DateTime? selectedDate;
   final Function(BuildContext) onDateSelect;
+  final Map<String, dynamic>? initialData;
+  final Future<void> Function(Map<String, dynamic> data)? onSave;
 
   const BangKeoInTab({
     super.key,
     required this.selectedDate,
     required this.onDateSelect,
+    this.initialData,
+    this.onSave,
   });
 
   @override
@@ -50,6 +54,43 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
   final _tienShipController = TextEditingController();
   final _loiNhuanRongController = TextEditingController();
   final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      final d = widget.initialData!;
+      _tenHangController.text = d['ten_hang']?.toString() ?? '';
+      _tenKhachHangController.text = d['ten_khach_hang']?.toString() ?? '';
+      _quyCachMmController.text = d['quy_cach_mm']?.toString() ?? '';
+      _quyCachMController.text = d['quy_cach_m']?.toString() ?? '';
+      _quyCachMicController.text = d['quy_cach_mic']?.toString() ?? '';
+      _cuonCayController.text = d['cuon_cay']?.toString() ?? '';
+      _soLuongController.text = d['so_luong']?.toString() ?? '';
+      _phiSlController.text = d['phi_sl']?.toString() ?? '';
+      _mauKeoController.text = d['mau_keo']?.toString() ?? '';
+      _phiKeoController.text = d['phi_keo']?.toString() ?? '';
+      _mauSacController.text = d['mau_sac']?.toString() ?? '';
+      _phiMauController.text = d['phi_mau']?.toString() ?? '';
+      _phiSizeController.text = d['phi_size']?.toString() ?? '';
+      _phiCatController.text = d['phi_cat']?.toString() ?? '';
+      _donGiaVonController.text = d['don_gia_von'] != null ? currencyFormat.format(d['don_gia_von']) : '';
+      _donGiaGocController.text = d['don_gia_goc'] != null ? currencyFormat.format(d['don_gia_goc']) : '';
+      _thanhTienGocController.text = d['thanh_tien_goc'] != null ? currencyFormat.format(d['thanh_tien_goc']) : '';
+      _donGiaBanController.text = d['don_gia_ban'] != null ? currencyFormat.format(d['don_gia_ban']) : '';
+      _thanhTienBanController.text = d['thanh_tien_ban'] != null ? currencyFormat.format(d['thanh_tien_ban']) : '';
+      _tienCocController.text = d['tien_coc'] != null ? currencyFormat.format(d['tien_coc']) : '';
+      _congNoKhachController.text = d['cong_no_khach'] != null ? currencyFormat.format(d['cong_no_khach']) : '';
+      _ctvController.text = d['ctv']?.toString() ?? '';
+      _hoaHongController.text = d['hoa_hong']?.toString() ?? '';
+      _tienHoaHongController.text = d['tien_hoa_hong'] != null ? currencyFormat.format(d['tien_hoa_hong']) : '';
+      _loiGiayController.text = d['loi_giay']?.toString() ?? '';
+      _thungBaoController.text = d['thung_bao']?.toString() ?? '';
+      _loiNhuanController.text = d['loi_nhuan'] != null ? currencyFormat.format(d['loi_nhuan']) : '';
+      _tienShipController.text = d['tien_ship'] != null ? currencyFormat.format(d['tien_ship']) : '';
+      _loiNhuanRongController.text = d['loi_nhuan_rong'] != null ? currencyFormat.format(d['loi_nhuan_rong']) : '';
+    }
+  }
 
   @override
   void dispose() {
@@ -625,16 +666,14 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
         ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              try {
-                final db = Provider.of<DatabaseService>(context, listen: false);
-                final now = DateTime.now();
-                final newId = await db.generateBangKeoInOrderId();
-                final order = {
-                  'id': newId,
-                  'thoi_gian': now.toIso8601String(),
+              if (widget.onSave != null) {
+                // Edit mode
+                final data = {
+                  'id': widget.initialData?['id'],
+                  'thoi_gian': widget.initialData?['thoi_gian'],
                   'ten_hang': _tenHangController.text,
                   'ten_khach_hang': _tenKhachHangController.text,
-                  'ngay_du_kien': widget.selectedDate?.toIso8601String() ?? now.toIso8601String(),
+                  'ngay_du_kien': widget.selectedDate?.toIso8601String(),
                   'quy_cach_mm': _parseField(_quyCachMmController.text),
                   'quy_cach_m': _parseField(_quyCachMController.text),
                   'quy_cach_mic': _parseField(_quyCachMicController.text),
@@ -662,24 +701,70 @@ class _BangKeoInTabState extends State<BangKeoInTab> {
                   'loi_nhuan': _parseField(_loiNhuanController.text),
                   'tien_ship': _parseField(_tienShipController.text),
                   'loi_nhuan_rong': _parseField(_loiNhuanRongController.text),
-                  'da_giao': false,
-                  'da_tat_toan': false,
+                  'da_giao': widget.initialData?['da_giao'] ?? false,
+                  'da_tat_toan': widget.initialData?['da_tat_toan'] ?? false,
                 };
-                print(order);
-                order.forEach((k, v) => print('$k: \\t${v.runtimeType} - $v'));
-                final id = await db.createBangKeoInOrder(order);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Đã lưu đơn hàng thành công (ID: $id)!')),
-                  );
-                }
-              } catch (e, stack) {
-                print('Lỗi khi lưu đơn hàng: $e');
-                print(stack);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Lỗi khi lưu đơn hàng: $e')),
-                  );
+                await widget.onSave!(data);
+              } else {
+                // Add mode
+                try {
+                  final db = Provider.of<DatabaseService>(context, listen: false);
+                  final now = DateTime.now();
+                  final newId = await db.generateBangKeoInOrderId();
+                  final order = {
+                    'id': newId,
+                    'thoi_gian': now.toIso8601String(),
+                    'ten_hang': _tenHangController.text,
+                    'ten_khach_hang': _tenKhachHangController.text,
+                    'ngay_du_kien': widget.selectedDate?.toIso8601String() ?? now.toIso8601String(),
+                    'quy_cach_mm': _parseField(_quyCachMmController.text),
+                    'quy_cach_m': _parseField(_quyCachMController.text),
+                    'quy_cach_mic': _parseField(_quyCachMicController.text),
+                    'cuon_cay': _parseField(_cuonCayController.text),
+                    'so_luong': _parseField(_soLuongController.text),
+                    'phi_sl': _parseField(_phiSlController.text),
+                    'mau_keo': _mauKeoController.text,
+                    'phi_keo': _parseField(_phiKeoController.text),
+                    'mau_sac': _mauSacController.text,
+                    'phi_mau': _parseField(_phiMauController.text),
+                    'phi_size': _parseField(_phiSizeController.text),
+                    'phi_cat': _parseField(_phiCatController.text),
+                    'don_gia_von': _parseField(_donGiaVonController.text),
+                    'don_gia_goc': _parseField(_donGiaGocController.text),
+                    'thanh_tien_goc': _parseField(_thanhTienGocController.text),
+                    'don_gia_ban': _parseField(_donGiaBanController.text),
+                    'thanh_tien_ban': _parseField(_thanhTienBanController.text),
+                    'tien_coc': _parseField(_tienCocController.text),
+                    'cong_no_khach': _parseField(_congNoKhachController.text),
+                    'ctv': _ctvController.text,
+                    'hoa_hong': _parseField(_hoaHongController.text),
+                    'tien_hoa_hong': _parseField(_tienHoaHongController.text),
+                    'loi_giay': _loiGiayController.text,
+                    'thung_bao': _thungBaoController.text,
+                    'loi_nhuan': _parseField(_loiNhuanController.text),
+                    'tien_ship': _parseField(_tienShipController.text),
+                    'loi_nhuan_rong': _parseField(_loiNhuanRongController.text),
+                    'da_giao': false,
+                    'da_tat_toan': false,
+                  };
+                  final id = await db.createBangKeoInOrder(order);
+                  if (id != null && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Đã lưu đơn hàng thành công (ID: $id)!')),
+                    );
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Lỗi: Không lưu được đơn hàng!')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lỗi khi lưu đơn hàng: $e')),
+                    );
+                  }
+                  // Thêm log chi tiết lỗi
+                  print('Lỗi chi tiết khi lưu đơn hàng Băng keo in: $e');
                 }
               }
             }

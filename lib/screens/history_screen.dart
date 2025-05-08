@@ -66,7 +66,8 @@ class _HistoryTabState extends State<HistoryTab> {
   List<Map<String, dynamic>> _filteredOrders = [];
   bool _isLoading = true;
   String _searchText = '';
-  DateTime? _selectedDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   @override
   void initState() {
@@ -106,8 +107,17 @@ class _HistoryTabState extends State<HistoryTab> {
       _filteredOrders = _orders.where((order) {
         final name = (order['ten_khach_hang'] ?? '').toString().toLowerCase();
         final search = _searchText.toLowerCase();
-        final date = order['ngay_du_kien']?.toString().split('T')[0] ?? '';
-        final dateMatch = _selectedDate == null || date == DateFormat('yyyy-MM-dd').format(_selectedDate!);
+        final rawDate = order['ngay_du_kien'];
+        DateTime? orderDate;
+        if (rawDate is DateTime) {
+          orderDate = rawDate;
+        } else if (rawDate is String) {
+          orderDate = DateTime.tryParse(rawDate);
+        }
+        final dateMatch = (_startDate == null && _endDate == null) ||
+          (orderDate != null &&
+            (_startDate == null || !orderDate.isBefore(_startDate!)) &&
+            (_endDate == null || !orderDate.isAfter(_endDate!)));
         return name.contains(search) && dateMatch;
       }).toList();
     });
@@ -119,43 +129,70 @@ class _HistoryTabState extends State<HistoryTab> {
       children: [
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Tìm theo tên khách hàng',
-                    border: OutlineInputBorder(),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Tìm theo tên khách hàng',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        _searchText = value;
+                        _filterOrders();
+                      },
+                    ),
                   ),
-                  onChanged: (value) {
-                    _searchText = value;
-                    _filterOrders();
-                  },
-                ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.date_range),
+                    onPressed: () async {
+                      final pickedStart = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                        helpText: 'Chọn ngày bắt đầu',
+                      );
+                      if (pickedStart != null) {
+                        final pickedEnd = await showDatePicker(
+                          context: context,
+                          initialDate: _endDate ?? pickedStart,
+                          firstDate: pickedStart,
+                          lastDate: DateTime(2100),
+                          helpText: 'Chọn ngày kết thúc',
+                        );
+                        setState(() {
+                          _startDate = pickedStart;
+                          _endDate = pickedEnd;
+                        });
+                        _filterOrders();
+                      }
+                    },
+                  ),
+                  if (_startDate != null || _endDate != null)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _startDate = null;
+                          _endDate = null;
+                        });
+                        _filterOrders();
+                      },
+                    ),
+                ],
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    setState(() { _selectedDate = picked; });
-                    _filterOrders();
-                  }
-                },
-              ),
-              if (_selectedDate != null)
-                IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    setState(() { _selectedDate = null; });
-                    _filterOrders();
-                  },
+              if (_startDate != null || _endDate != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    'Từ: ${_startDate != null ? DateFormat('dd/MM/yyyy').format(_startDate!) : '...'} '
+                    'đến: ${_endDate != null ? DateFormat('dd/MM/yyyy').format(_endDate!) : '...'}',
+                    style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                  ),
                 ),
             ],
           ),
@@ -195,15 +232,52 @@ class _HistoryTabState extends State<HistoryTab> {
                                 },
                               ),
                               onTap: () {
+                                final id = order['id']?.toString() ?? '';
+                                String loaiDon = '';
+                                if (id.startsWith('BK')) {
+                                  loaiDon = 'bang_keo_in';
+                                } else if (id.startsWith('TI')) {
+                                  loaiDon = 'truc_in';
+                                } else if (id.startsWith('B')) {
+                                  loaiDon = 'bang_keo';
+                                }
                                 Navigator.pushNamed(
                                   context,
-                                  '/edit_order',
+                                  '/order_detail',
                                   arguments: {
-                                    'id': order['id'],
-                                    'loai_don': widget.type,
+                                    'id': id,
+                                    'loai_don': loaiDon,
                                   },
                                 );
                               },
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Xác nhận xóa'),
+                                      content: const Text('Bạn có chắc muốn xóa đơn hàng này?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('Hủy'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          child: const Text('Xóa'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    final db = Provider.of<DatabaseService>(context, listen: false);
+                                    final id = order['id'].toString();
+                                    await db.deleteOrderByAnyTable(id);
+                                    _loadOrders();
+                                  }
+                                },
+                              ),
                             ),
                           );
                         },

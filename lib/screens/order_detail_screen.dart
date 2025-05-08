@@ -31,17 +31,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     setState(() => _isLoading = true);
     try {
       final db = Provider.of<DatabaseService>(context, listen: false);
-      Map<String, dynamic>? order;
-      if (_loaiDon == 'Băng keo in') {
-        final list = await db.getBangKeoInOrders();
-        order = list.firstWhere((o) => o['id'] == _orderId, orElse: () => {});
-      } else if (_loaiDon == 'Trục in') {
-        final list = await db.getTrucInOrders();
-        order = list.firstWhere((o) => o['id'] == _orderId, orElse: () => {});
-      } else if (_loaiDon == 'Băng keo') {
-        final list = await db.getBangKeoOrders();
-        order = list.firstWhere((o) => o['id'] == _orderId, orElse: () => {});
-      }
+      final order = await db.getOrderByAnyTable(_orderId.toString());
       setState(() {
         _order = order;
         _isLoading = false;
@@ -62,6 +52,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     } catch (_) {
       return value.toString();
     }
+  }
+
+  String _getOrderTypeForEdit() {
+    if (_loaiDon == 'Băng keo in') return 'bang_keo_in';
+    if (_loaiDon == 'Trục in') return 'truc_in';
+    if (_loaiDon == 'Băng keo') return 'bang_keo';
+    return '';
   }
 
   @override
@@ -212,6 +209,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           Expanded(
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                padding: const EdgeInsets.symmetric(vertical: 18),
+                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () {
+                                String loaiDon = '';
+                                final id = _order!['id']?.toString() ?? '';
+                                if (id.startsWith('BK')) {
+                                  loaiDon = 'bang_keo_in';
+                                } else if (id.startsWith('TI')) {
+                                  loaiDon = 'truc_in';
+                                } else if (id.startsWith('B')) {
+                                  loaiDon = 'bang_keo';
+                                }
+                                Navigator.pushNamed(
+                                  context,
+                                  '/edit_order',
+                                  arguments: {
+                                    'id': id,
+                                    'loai_don': loaiDon,
+                                  },
+                                );
+                              },
+                              child: const Text('Chỉnh sửa'),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
                                 backgroundColor: _order!['da_giao'] == true ? Colors.red : Colors.green,
                                 padding: const EdgeInsets.symmetric(vertical: 18),
                                 textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -255,12 +283,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 );
                                 if (confirm != true) return;
                                 final db = Provider.of<DatabaseService>(context, listen: false);
+                                final loaiDon = _order?['loai_don'];
                                 try {
-                                  if (_loaiDon == 'Băng keo in') {
+                                  if (loaiDon == 'Băng keo in') {
                                     await db.updateBangKeoInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
-                                  } else if (_loaiDon == 'Trục in') {
+                                  } else if (loaiDon == 'Trục in') {
                                     await db.updateTrucInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
-                                  } else if (_loaiDon == 'Băng keo') {
+                                  } else if (loaiDon == 'Băng keo') {
                                     await db.updateBangKeoOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
                                   }
                                   await _loadOrder();
@@ -323,20 +352,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 );
                                 if (confirm != true) return;
                                 final db = Provider.of<DatabaseService>(context, listen: false);
+                                final loaiDon = _order?['loai_don'];
                                 try {
-                                  if (_loaiDon == 'Băng keo in') {
+                                  if (loaiDon == 'Băng keo in') {
                                     await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
                                     if (!(_order!['da_tat_toan'] == true)) {
                                       await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: true);
                                       _order!['cong_no_khach'] = 0;
                                     }
-                                  } else if (_loaiDon == 'Trục in') {
+                                  } else if (loaiDon == 'Trục in') {
                                     await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
                                     if (!(_order!['da_tat_toan'] == true)) {
                                       await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: true);
                                       _order!['cong_no_khach'] = 0;
                                     }
-                                  } else if (_loaiDon == 'Băng keo') {
+                                  } else if (loaiDon == 'Băng keo') {
                                     await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
                                     if (!(_order!['da_tat_toan'] == true)) {
                                       await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: true);

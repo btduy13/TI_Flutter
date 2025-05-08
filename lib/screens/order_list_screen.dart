@@ -14,6 +14,10 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
   List<Map<String, dynamic>> _orders = [];
   bool _isLoading = true;
   late TabController _tabController;
+  String? _errorMessage;
+
+  String? _selectedLoaiDon; // null = tất cả
+  final List<String> _loaiDonOptions = ['Tất cả', 'Băng keo in', 'Băng keo', 'Trục in'];
 
   @override
   void initState() {
@@ -36,36 +40,45 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
       setState(() {
         _orders = orders;
         _isLoading = false;
+        _errorMessage = null;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading orders: $e')),
-      );
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error loading orders: $e';
+      });
     }
+  }
+
+  List<Map<String, dynamic>> _filterByLoaiDon(List<Map<String, dynamic>> orders) {
+    if (_selectedLoaiDon == null) return orders;
+    return orders.where((order) => order['loai_don'] == _selectedLoaiDon).toList();
   }
 
   List<Map<String, dynamic>> _getUpcomingOrders() {
     final now = DateTime.now();
     final sevenDaysLater = now.add(const Duration(days: 7));
-    return _orders.where((order) {
+    final filtered = _orders.where((order) {
       final ngayDuKien = _parseDate(order['ngay_du_kien']);
       final daGiao = order['da_giao'] == true;
       return !daGiao && ngayDuKien != null && ngayDuKien.isAfter(now.subtract(const Duration(days: 1))) && ngayDuKien.isBefore(sevenDaysLater.add(const Duration(days: 1)));
     }).toList();
+    return _filterByLoaiDon(filtered);
   }
 
   List<Map<String, dynamic>> _getOverdueOrders() {
     final now = DateTime.now();
-    return _orders.where((order) {
+    final filtered = _orders.where((order) {
       final ngayDuKien = _parseDate(order['ngay_du_kien']);
       final daGiao = order['da_giao'] == true;
       return !daGiao && ngayDuKien != null && ngayDuKien.isBefore(now);
     }).toList();
+    return _filterByLoaiDon(filtered);
   }
 
   List<Map<String, dynamic>> _getUnpaidOrders() {
-    return _orders.where((order) => order['da_tat_toan'] == false).toList();
+    final filtered = _orders.where((order) => order['da_tat_toan'] == false).toList();
+    return _filterByLoaiDon(filtered);
   }
 
   DateTime? _parseDate(dynamic value) {
@@ -116,7 +129,7 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
                   context,
                   '/order_detail',
                   arguments: {
-                    'id': order['id'],
+                    'id': order['id'].toString(),
                     'loai_don': order['loai_don'],
                   },
                 );
@@ -143,17 +156,8 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
                   );
                   if (confirm == true) {
                     final db = Provider.of<DatabaseService>(context, listen: false);
-                    final loaiDon = order['loai_don']?.toString() ?? '';
                     final id = order['id'].toString();
-                    if (loaiDon == 'Băng keo in') {
-                      await db.deleteBangKeoInOrder(id);
-                    } else if (loaiDon == 'Trục in') {
-                      await db.deleteTrucInOrder(id);
-                    } else if (loaiDon == 'Băng keo') {
-                      await db.deleteBangKeoOrder(id);
-                    } else {
-                      await db.deleteOrder(int.parse(id)); // fallback cho bảng don_hang cũ
-                    }
+                    await db.deleteOrderByAnyTable(id);
                     _loadOrders();
                   }
                 },
@@ -167,8 +171,36 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_errorMessage!)),
+        );
+        setState(() {
+          _errorMessage = null;
+        });
+      }
+    });
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: DropdownButton<String>(
+            value: _selectedLoaiDon ?? 'Tất cả',
+            isExpanded: true,
+            items: _loaiDonOptions.map((loai) {
+              return DropdownMenuItem<String>(
+                value: loai,
+                child: Text(loai),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedLoaiDon = value == 'Tất cả' ? null : value;
+              });
+            },
+          ),
+        ),
         TabBar(
           controller: _tabController,
           tabs: const [

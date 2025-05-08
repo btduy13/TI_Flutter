@@ -4,6 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import '../../services/database_service.dart';
 
+String safeNumericString(dynamic value) {
+  if (value == null) return '0';
+  if (value is int) return value.toString();
+  if (value is double) return value.toString();
+  return value.toString();
+}
+
 class BangKeoTab extends StatefulWidget {
   final DateTime? selectedDate;
   final Function(BuildContext) onDateSelect;
@@ -45,25 +52,26 @@ class _BangKeoTabState extends State<BangKeoTab> {
   @override
   void initState() {
     super.initState();
+    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
     if (widget.initialData != null) {
       final d = widget.initialData!;
       _tenHangController.text = d['ten_hang']?.toString() ?? '';
       _tenKhachHangController.text = d['ten_khach_hang']?.toString() ?? '';
       _quyCachController.text = d['quy_cach']?.toString() ?? '';
-      _soLuongController.text = d['so_luong']?.toString() ?? '';
+      _soLuongController.text = safeNumericString(d['so_luong']);
       _mauSacController.text = d['mau_sac']?.toString() ?? '';
-      _donGiaGocController.text = d['don_gia_goc']?.toString() ?? '';
-      _donGiaBanController.text = d['don_gia_ban']?.toString() ?? '';
+      _donGiaGocController.text = d['don_gia_goc'] != null ? currencyFormat.format(d['don_gia_goc']) : '';
+      _donGiaBanController.text = d['don_gia_ban'] != null ? currencyFormat.format(d['don_gia_ban']) : '';
       _tenCtvController.text = d['ctv']?.toString() ?? '';
-      _hoaHongCtvController.text = d['hoa_hong']?.toString() ?? '';
-      _tienShipController.text = d['tien_ship']?.toString() ?? '';
+      _hoaHongCtvController.text = safeNumericString(d['hoa_hong']);
+      _tienShipController.text = d['tien_ship'] != null ? currencyFormat.format(d['tien_ship']) : '';
       // calculated fields
-      _thanhTien = d['thanh_tien'] ?? 0;
-      _thanhTienBan = d['thanh_tien_ban'] ?? 0;
-      _congNoKhach = d['cong_no_khach'] ?? 0;
-      _tienHoaHong = d['tien_hoa_hong'] ?? 0;
-      _loiNhuan = d['loi_nhuan'] ?? 0;
-      _loiNhuanRong = d['loi_nhuan_rong'] ?? 0;
+      _thanhTien = double.parse(safeNumericString(d['thanh_tien']));
+      _thanhTienBan = double.parse(safeNumericString(d['thanh_tien_ban']));
+      _congNoKhach = double.parse(safeNumericString(d['cong_no_khach']));
+      _tienHoaHong = double.parse(safeNumericString(d['tien_hoa_hong']));
+      _loiNhuan = double.parse(safeNumericString(d['loi_nhuan']));
+      _loiNhuanRong = double.parse(safeNumericString(d['loi_nhuan_rong']));
     }
   }
 
@@ -97,7 +105,6 @@ class _BangKeoTabState extends State<BangKeoTab> {
       'thanh_tien': _thanhTien,
       'don_gia_ban': double.tryParse(_donGiaBanController.text) ?? 0,
       'thanh_tien_ban': _thanhTienBan,
-      'tien_coc': 0,
       'cong_no_khach': _congNoKhach,
       'ctv': _tenCtvController.text,
       'hoa_hong': double.tryParse(_hoaHongCtvController.text) ?? 0,
@@ -114,12 +121,16 @@ class _BangKeoTabState extends State<BangKeoTab> {
     } else {
       try {
         final dbService = Provider.of<DatabaseService>(context, listen: false);
-        await dbService.createBangKeoOrder(order);
-        if (mounted) {
+        final id = await dbService.createBangKeoOrder(order);
+        if (id != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã lưu đơn hàng thành công')),
+            SnackBar(content: Text('Đã lưu đơn hàng thành công (ID: $id)')),
           );
           _resetForm();
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lỗi: Không lưu được đơn hàng!')),
+          );
         }
       } catch (e) {
         if (mounted) {
