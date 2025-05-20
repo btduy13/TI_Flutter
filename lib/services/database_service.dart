@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/customer.dart';
 
 class DatabaseService extends ChangeNotifier {
   final supabase = Supabase.instance.client;
@@ -364,6 +365,99 @@ class DatabaseService extends ChangeNotifier {
     try { await deleteBangKeoInOrder(id); } catch (_) {}
     try { await deleteTrucInOrder(id); } catch (_) {}
     try { await deleteOrder(id); } catch (_) {}
+  }
+
+  // Customer operations
+  Future<List<Customer>> getCustomers() async {
+    final response = await supabase
+        .from('customers')
+        .select()
+        .order('created_at', ascending: false);
+    
+    return (response as List)
+        .map((json) => Customer.fromJson(json))
+        .toList();
+  }
+
+  Future<Customer> addCustomer({
+    required String tenKhachHang,
+    required String phone,
+    required String address,
+  }) async {
+    final response = await supabase.from('customers').insert({
+      'ten_khach_hang': tenKhachHang,
+      'phone': phone,
+      'address': address,
+      'created_at': DateTime.now().toIso8601String(),
+    }).select().single();
+
+    return Customer.fromJson(response);
+  }
+
+  Future<void> updateCustomer(Customer customer) async {
+    await supabase.from('customers').update({
+      'ten_khach_hang': customer.tenKhachHang,
+      'phone': customer.phone,
+      'address': customer.address,
+    }).eq('id', customer.id);
+  }
+
+  Future<void> deleteCustomer(String id) async {
+    await supabase.from('customers').delete().eq('id', id);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllUniqueCustomers() async {
+    // Lấy tất cả đơn hàng từ các bảng
+    final bki = await supabase.from('bang_keo_in_orders').select();
+    final ti = await supabase.from('truc_in_orders').select();
+    final bk = await supabase.from('bang_keo_orders').select();
+
+    // Gộp tất cả đơn hàng
+    final allOrders = [
+      ...bki.map((e) => {...e, 'loai_don': 'Băng keo in'}),
+      ...ti.map((e) => {...e, 'loai_don': 'Trục in'}),
+      ...bk.map((e) => {...e, 'loai_don': 'Băng keo'}),
+    ];
+
+    // Gom nhóm theo tên khách hàng
+    final Map<String, List<Map<String, dynamic>>> groupedByCustomer = {};
+    for (var order in allOrders) {
+      final tenKhachHang = order['ten_khach_hang']?.toString() ?? '';
+      if (tenKhachHang.isNotEmpty) {
+        if (!groupedByCustomer.containsKey(tenKhachHang)) {
+          groupedByCustomer[tenKhachHang] = [];
+        }
+        groupedByCustomer[tenKhachHang]!.add(order);
+      }
+    }
+
+    // Chuyển đổi thành danh sách khách hàng với thông tin tổng hợp
+    final List<Map<String, dynamic>> customers = [];
+    groupedByCustomer.forEach((tenKhachHang, orders) {
+      final totalOrders = orders.length;
+      final totalAmount = orders.fold<double>(
+        0,
+        (sum, order) {
+          final value = order['tong_tien'] ?? order['thanh_tien_ban'] ?? order['thanh_tien'] ?? order['thanh_tien_goc'];
+          if (value == null) return sum;
+          if (value is num) return sum + value.toDouble();
+          final parsed = double.tryParse(value.toString());
+          return sum + (parsed ?? 0);
+        },
+      );
+      final unpaidOrders = orders.where((o) => o['da_tat_toan'] != true).length;
+      customers.add({
+        'ten_khach_hang': tenKhachHang,
+        'so_don_hang': totalOrders,
+        'tong_tien': totalAmount,
+        'don_chua_thanh_toan': unpaidOrders,
+        'don_hang': orders,
+      });
+    });
+
+    // Sắp xếp theo số đơn hàng giảm dần
+    customers.sort((a, b) => b['so_don_hang'].compareTo(a['so_don_hang']));
+    return customers;
   }
 
   @override

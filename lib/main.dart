@@ -8,14 +8,26 @@ import 'screens/add_order_screen.dart';
 import 'screens/order_detail_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/edit_order_screen.dart';
+import 'screens/customer_list_screen.dart';
 
 void main() async {
+  try {
+    print('Initializing Flutter bindings...');
   WidgetsFlutterBinding.ensureInitialized();
+    
+    print('Initializing Supabase...');
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
   );
+    print('Supabase initialized successfully');
+    
+    print('Running app...');
   runApp(const MyApp());
+  } catch (e, stackTrace) {
+    print('Error during initialization: $e');
+    print('Stack trace: $stackTrace');
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -60,9 +72,14 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const OrderListScreen(),
     const HistoryScreen(),
+    const CustomerListScreen(),
   ];
 
-  final List<String> _titles = ['Quản lý đơn hàng', 'Lịch sử đơn hàng'];
+  final List<String> _titles = [
+    'Quản lý đơn hàng',
+    'Lịch sử đơn hàng',
+    'Quản lý khách hàng'
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +111,10 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDrawerDestination(
             icon: Icon(Icons.history),
             label: Text('Lịch sử đơn hàng'),
+          ),
+          NavigationDrawerDestination(
+            icon: Icon(Icons.people),
+            label: Text('Quản lý khách hàng'),
           ),
         ],
       ),

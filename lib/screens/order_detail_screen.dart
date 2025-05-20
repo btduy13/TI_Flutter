@@ -61,6 +61,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return '';
   }
 
+  Widget _buildActionButton(BuildContext context, String text, Color color, VoidCallback onPressed) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      onPressed: onPressed,
+      child: Text(text),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -204,189 +217,325 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                padding: const EdgeInsets.symmetric(vertical: 18),
-                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              onPressed: () {
-                                String loaiDon = '';
-                                final id = _order!['id']?.toString() ?? '';
-                                if (id.startsWith('BK')) {
-                                  loaiDon = 'bang_keo_in';
-                                } else if (id.startsWith('TI')) {
-                                  loaiDon = 'truc_in';
-                                } else if (id.startsWith('B')) {
-                                  loaiDon = 'bang_keo';
-                                }
-                                Navigator.pushNamed(
-                                  context,
-                                  '/edit_order',
-                                  arguments: {
-                                    'id': id,
-                                    'loai_don': loaiDon,
-                                  },
-                                );
-                              },
-                              child: const Text('Chỉnh sửa'),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _order!['da_giao'] == true ? Colors.red : Colors.green,
-                                padding: const EdgeInsets.symmetric(vertical: 18),
-                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    title: Row(
-                                      children: [
-                                        Icon(_order!['da_giao'] == true ? Icons.undo : Icons.local_shipping, color: _order!['da_giao'] == true ? Colors.red : Colors.green, size: 32),
-                                        const SizedBox(width: 12),
-                                        Text(_order!['da_giao'] == true ? 'Xác nhận hoàn tác giao hàng' : 'Xác nhận giao hàng'),
-                                      ],
-                                    ),
-                                    content: Text(_order!['da_giao'] == true ? 'Bạn có chắc muốn chuyển về CHƯA GIAO HÀNG?' : 'Bạn có chắc muốn chuyển sang ĐÃ GIAO HÀNG?'),
-                                    actions: [
-                                      TextButton(
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.grey[700],
-                                          textStyle: const TextStyle(fontSize: 18),
-                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                        ),
-                                        onPressed: () => Navigator.pop(ctx, false),
-                                        child: const Text('Hủy'),
-                                      ),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: _order!['da_giao'] == true ? Colors.red : Colors.green,
-                                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        ),
-                                        onPressed: () => Navigator.pop(ctx, true),
-                                        child: const Text('Xác nhận'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirm != true) return;
-                                final db = Provider.of<DatabaseService>(context, listen: false);
-                                final loaiDon = _order?['loai_don'];
-                                try {
-                                  if (loaiDon == 'Băng keo in') {
-                                    await db.updateBangKeoInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
-                                  } else if (loaiDon == 'Trục in') {
-                                    await db.updateTrucInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
-                                  } else if (loaiDon == 'Băng keo') {
-                                    await db.updateBangKeoOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < 400;
+                          if (isNarrow) {
+                            return Column(
+                              children: [
+                                _buildActionButton(context, 'Chỉnh sửa', Colors.orange, () {
+                                  String loaiDon = '';
+                                  final id = _order!['id']?.toString() ?? '';
+                                  if (id.startsWith('BK')) {
+                                    loaiDon = 'bang_keo_in';
+                                  } else if (id.startsWith('TI')) {
+                                    loaiDon = 'truc_in';
+                                  } else if (id.startsWith('B')) {
+                                    loaiDon = 'bang_keo';
                                   }
-                                  await _loadOrder();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Cập nhật trạng thái giao hàng thành công!')),
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/edit_order',
+                                    arguments: {
+                                      'id': id,
+                                      'loai_don': loaiDon,
+                                    },
                                   );
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Lỗi cập nhật trạng thái: $e')),
-                                  );
-                                }
-                              },
-                              child: Text(_order!['da_giao'] == true ? 'CHƯA GIAO HÀNG' : 'ĐÃ GIAO HÀNG'),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _order!['da_tat_toan'] == true ? Colors.red : Colors.green,
-                                padding: const EdgeInsets.symmetric(vertical: 18),
-                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    title: Row(
-                                      children: [
-                                        Icon(_order!['da_tat_toan'] == true ? Icons.undo : Icons.payment, color: _order!['da_tat_toan'] == true ? Colors.red : Colors.green, size: 32),
-                                        const SizedBox(width: 12),
-                                        Text(_order!['da_tat_toan'] == true ? 'Xác nhận hoàn tác tất toán' : 'Xác nhận tất toán'),
-                                      ],
-                                    ),
-                                    content: Text(_order!['da_tat_toan'] == true ? 'Bạn có chắc muốn chuyển về CHƯA TẤT TOÁN?' : 'Bạn có chắc muốn chuyển sang ĐÃ TẤT TOÁN?'),
-                                    actions: [
-                                      TextButton(
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.grey[700],
-                                          textStyle: const TextStyle(fontSize: 18),
-                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                }),
+                                const SizedBox(height: 12),
+                                _buildActionButton(context, _order!['da_giao'] == true ? 'CHƯA GIAO HÀNG' : 'ĐÃ GIAO HÀNG',
+                                  _order!['da_giao'] == true ? Colors.red : Colors.green, () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        title: Row(
+                                          children: [
+                                            Icon(_order!['da_giao'] == true ? Icons.undo : Icons.local_shipping, color: _order!['da_giao'] == true ? Colors.red : Colors.green, size: 32),
+                                            const SizedBox(width: 12),
+                                            Text(_order!['da_giao'] == true ? 'Xác nhận hoàn tác giao hàng' : 'Xác nhận giao hàng'),
+                                          ],
                                         ),
-                                        onPressed: () => Navigator.pop(ctx, false),
-                                        child: const Text('Hủy'),
+                                        content: Text(_order!['da_giao'] == true ? 'Bạn có chắc muốn chuyển về CHƯA GIAO HÀNG?' : 'Bạn có chắc muốn chuyển sang ĐÃ GIAO HÀNG?'),
+                                        actions: [
+                                          TextButton(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.grey[700],
+                                              textStyle: const TextStyle(fontSize: 18),
+                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                            ),
+                                            onPressed: () => Navigator.pop(ctx, false),
+                                            child: const Text('Hủy'),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: _order!['da_giao'] == true ? Colors.red : Colors.green,
+                                              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            onPressed: () => Navigator.pop(ctx, true),
+                                            child: const Text('Xác nhận'),
+                                          ),
+                                        ],
                                       ),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: _order!['da_tat_toan'] == true ? Colors.red : Colors.green,
-                                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    );
+                                    if (confirm != true) return;
+                                    final db = Provider.of<DatabaseService>(context, listen: false);
+                                    final loaiDon = _order?['loai_don'];
+                                    try {
+                                      if (loaiDon == 'Băng keo in') {
+                                        await db.updateBangKeoInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
+                                      } else if (loaiDon == 'Trục in') {
+                                        await db.updateTrucInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
+                                      } else if (loaiDon == 'Băng keo') {
+                                        await db.updateBangKeoOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
+                                      }
+                                      await _loadOrder();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Cập nhật trạng thái giao hàng thành công!')),
+                                      );
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Lỗi cập nhật trạng thái: $e')),
+                                      );
+                                    }
+                                  }),
+                                const SizedBox(height: 12),
+                                _buildActionButton(context, _order!['da_tat_toan'] == true ? 'CHƯA TẤT TOÁN' : 'ĐÃ TẤT TOÁN',
+                                  _order!['da_tat_toan'] == true ? Colors.red : Colors.green, () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        title: Row(
+                                          children: [
+                                            Icon(_order!['da_tat_toan'] == true ? Icons.undo : Icons.payment, color: _order!['da_tat_toan'] == true ? Colors.red : Colors.green, size: 32),
+                                            const SizedBox(width: 12),
+                                            Text(_order!['da_tat_toan'] == true ? 'Xác nhận hoàn tác tất toán' : 'Xác nhận tất toán'),
+                                          ],
                                         ),
-                                        onPressed: () => Navigator.pop(ctx, true),
-                                        child: const Text('Xác nhận'),
+                                        content: Text(_order!['da_tat_toan'] == true ? 'Bạn có chắc muốn chuyển về CHƯA TẤT TOÁN?' : 'Bạn có chắc muốn chuyển sang ĐÃ TẤT TOÁN?'),
+                                        actions: [
+                                          TextButton(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.grey[700],
+                                              textStyle: const TextStyle(fontSize: 18),
+                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                            ),
+                                            onPressed: () => Navigator.pop(ctx, false),
+                                            child: const Text('Hủy'),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: _order!['da_tat_toan'] == true ? Colors.red : Colors.green,
+                                              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            onPressed: () => Navigator.pop(ctx, true),
+                                            child: const Text('Xác nhận'),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                );
-                                if (confirm != true) return;
-                                final db = Provider.of<DatabaseService>(context, listen: false);
-                                final loaiDon = _order?['loai_don'];
-                                try {
-                                  if (loaiDon == 'Băng keo in') {
-                                    await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
-                                    if (!(_order!['da_tat_toan'] == true)) {
-                                      await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: true);
-                                      _order!['cong_no_khach'] = 0;
+                                    );
+                                    if (confirm != true) return;
+                                    final db = Provider.of<DatabaseService>(context, listen: false);
+                                    final loaiDon = _order?['loai_don'];
+                                    try {
+                                      if (loaiDon == 'Băng keo in') {
+                                        await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
+                                        if (!(_order!['da_tat_toan'] == true)) {
+                                          await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: true);
+                                          _order!['cong_no_khach'] = 0;
+                                        }
+                                      } else if (loaiDon == 'Trục in') {
+                                        await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
+                                        if (!(_order!['da_tat_toan'] == true)) {
+                                          await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: true);
+                                          _order!['cong_no_khach'] = 0;
+                                        }
+                                      } else if (loaiDon == 'Băng keo') {
+                                        await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
+                                        if (!(_order!['da_tat_toan'] == true)) {
+                                          await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: true);
+                                          _order!['cong_no_khach'] = 0;
+                                        }
+                                      }
+                                      await _loadOrder();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Cập nhật trạng thái thanh toán thành công!')),
+                                      );
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Lỗi cập nhật trạng thái: $e')),
+                                      );
                                     }
-                                  } else if (loaiDon == 'Trục in') {
-                                    await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
-                                    if (!(_order!['da_tat_toan'] == true)) {
-                                      await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: true);
-                                      _order!['cong_no_khach'] = 0;
+                                  }),
+                              ],
+                            );
+                          } else {
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: _buildActionButton(context, 'Chỉnh sửa', Colors.orange, () {
+                                    String loaiDon = '';
+                                    final id = _order!['id']?.toString() ?? '';
+                                    if (id.startsWith('BK')) {
+                                      loaiDon = 'bang_keo_in';
+                                    } else if (id.startsWith('TI')) {
+                                      loaiDon = 'truc_in';
+                                    } else if (id.startsWith('B')) {
+                                      loaiDon = 'bang_keo';
                                     }
-                                  } else if (loaiDon == 'Băng keo') {
-                                    await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
-                                    if (!(_order!['da_tat_toan'] == true)) {
-                                      await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: true);
-                                      _order!['cong_no_khach'] = 0;
-                                    }
-                                  }
-                                  await _loadOrder();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Cập nhật trạng thái thanh toán thành công!')),
-                                  );
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Lỗi cập nhật trạng thái: $e')),
-                                  );
-                                }
-                              },
-                              child: Text(_order!['da_tat_toan'] == true ? 'CHƯA TẤT TOÁN' : 'ĐÃ TẤT TOÁN'),
-                            ),
-                          ),
-                        ],
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/edit_order',
+                                      arguments: {
+                                        'id': id,
+                                        'loai_don': loaiDon,
+                                      },
+                                    );
+                                  }),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildActionButton(context, _order!['da_giao'] == true ? 'CHƯA GIAO HÀNG' : 'ĐÃ GIAO HÀNG',
+                                    _order!['da_giao'] == true ? Colors.red : Colors.green, () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          title: Row(
+                                            children: [
+                                              Icon(_order!['da_giao'] == true ? Icons.undo : Icons.local_shipping, color: _order!['da_giao'] == true ? Colors.red : Colors.green, size: 32),
+                                              const SizedBox(width: 12),
+                                              Text(_order!['da_giao'] == true ? 'Xác nhận hoàn tác giao hàng' : 'Xác nhận giao hàng'),
+                                            ],
+                                          ),
+                                          content: Text(_order!['da_giao'] == true ? 'Bạn có chắc muốn chuyển về CHƯA GIAO HÀNG?' : 'Bạn có chắc muốn chuyển sang ĐÃ GIAO HÀNG?'),
+                                          actions: [
+                                            TextButton(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Colors.grey[700],
+                                                textStyle: const TextStyle(fontSize: 18),
+                                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                              ),
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: const Text('Hủy'),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: _order!['da_giao'] == true ? Colors.red : Colors.green,
+                                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                              ),
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              child: const Text('Xác nhận'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm != true) return;
+                                      final db = Provider.of<DatabaseService>(context, listen: false);
+                                      final loaiDon = _order?['loai_don'];
+                                      try {
+                                        if (loaiDon == 'Băng keo in') {
+                                          await db.updateBangKeoInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
+                                        } else if (loaiDon == 'Trục in') {
+                                          await db.updateTrucInOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
+                                        } else if (loaiDon == 'Băng keo') {
+                                          await db.updateBangKeoOrderStatus(_orderId.toString(), daGiao: !(_order!['da_giao'] == true));
+                                        }
+                                        await _loadOrder();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Cập nhật trạng thái giao hàng thành công!')),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Lỗi cập nhật trạng thái: $e')),
+                                        );
+                                      }
+                                    }),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildActionButton(context, _order!['da_tat_toan'] == true ? 'CHƯA TẤT TOÁN' : 'ĐÃ TẤT TOÁN',
+                                    _order!['da_tat_toan'] == true ? Colors.red : Colors.green, () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          title: Row(
+                                            children: [
+                                              Icon(_order!['da_tat_toan'] == true ? Icons.undo : Icons.payment, color: _order!['da_tat_toan'] == true ? Colors.red : Colors.green, size: 32),
+                                              const SizedBox(width: 12),
+                                              Text(_order!['da_tat_toan'] == true ? 'Xác nhận hoàn tác tất toán' : 'Xác nhận tất toán'),
+                                            ],
+                                          ),
+                                          content: Text(_order!['da_tat_toan'] == true ? 'Bạn có chắc muốn chuyển về CHƯA TẤT TOÁN?' : 'Bạn có chắc muốn chuyển sang ĐÃ TẤT TOÁN?'),
+                                          actions: [
+                                            TextButton(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Colors.grey[700],
+                                                textStyle: const TextStyle(fontSize: 18),
+                                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                              ),
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: const Text('Hủy'),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: _order!['da_tat_toan'] == true ? Colors.red : Colors.green,
+                                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                              ),
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              child: const Text('Xác nhận'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm != true) return;
+                                      final db = Provider.of<DatabaseService>(context, listen: false);
+                                      final loaiDon = _order?['loai_don'];
+                                      try {
+                                        if (loaiDon == 'Băng keo in') {
+                                          await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
+                                          if (!(_order!['da_tat_toan'] == true)) {
+                                            await db.updateBangKeoInOrderStatus(_orderId.toString(), daTatToan: true);
+                                            _order!['cong_no_khach'] = 0;
+                                          }
+                                        } else if (loaiDon == 'Trục in') {
+                                          await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
+                                          if (!(_order!['da_tat_toan'] == true)) {
+                                            await db.updateTrucInOrderStatus(_orderId.toString(), daTatToan: true);
+                                            _order!['cong_no_khach'] = 0;
+                                          }
+                                        } else if (loaiDon == 'Băng keo') {
+                                          await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: !(_order!['da_tat_toan'] == true));
+                                          if (!(_order!['da_tat_toan'] == true)) {
+                                            await db.updateBangKeoOrderStatus(_orderId.toString(), daTatToan: true);
+                                            _order!['cong_no_khach'] = 0;
+                                          }
+                                        }
+                                        await _loadOrder();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Cập nhật trạng thái thanh toán thành công!')),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Lỗi cập nhật trạng thái: $e')),
+                                        );
+                                      }
+                                    }),
+                                ),
+                              ],
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),

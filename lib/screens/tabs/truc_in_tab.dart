@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:tape_inventory_flutter/services/database_service.dart';
+import 'package:bang_keo/services/database_service.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 
 class TrucInTab extends StatefulWidget {

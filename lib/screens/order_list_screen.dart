@@ -19,6 +19,9 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
   String? _selectedLoaiDon; // null = tất cả
   final List<String> _loaiDonOptions = ['Tất cả', 'Băng keo in', 'Băng keo', 'Trục in'];
 
+  String _searchText = '';
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +56,13 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
   List<Map<String, dynamic>> _filterByLoaiDon(List<Map<String, dynamic>> orders) {
     if (_selectedLoaiDon == null) return orders;
     return orders.where((order) => order['loai_don'] == _selectedLoaiDon).toList();
+  }
+
+  List<Map<String, dynamic>> _filterBySearch(List<Map<String, dynamic>> orders) {
+    if (_searchText.trim().isEmpty) return orders;
+    return orders.where((order) =>
+      (order['ten_khach_hang'] ?? '').toString().toLowerCase().contains(_searchText.toLowerCase())
+    ).toList();
   }
 
   List<Map<String, dynamic>> _getUpcomingOrders() {
@@ -92,6 +102,7 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
   }
 
   Widget _buildOrderList(List<Map<String, dynamic>> orders) {
+    orders = _filterBySearch(orders);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -197,6 +208,22 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
             onChanged: (value) {
               setState(() {
                 _selectedLoaiDon = value == 'Tất cả' ? null : value;
+              });
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              labelText: 'Tìm kiếm theo tên khách hàng',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchText = value;
               });
             },
           ),
